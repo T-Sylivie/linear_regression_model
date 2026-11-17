@@ -13,7 +13,7 @@ Source: https://zindi.africa/competitions/sendy-logistics-challenge/data
 
 ## Public API (Swagger UI)
 
-_Coming soon_
+https://nairobi-delivery-time-api.onrender.com/docs
 
 ## Video Demo
 
