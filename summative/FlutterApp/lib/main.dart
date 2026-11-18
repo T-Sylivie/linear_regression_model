@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
+import 'api_service.dart';
 
 void main() => runApp(const DeliveryTimeApp());
 
@@ -51,6 +55,9 @@ const sections = <String, List<InputField>>{
   ],
 };
 
+final allFields = sections.values.expand((fields) => fields).toList();
+final fieldLabels = {for (final field in allFields) field.key: field.label};
+
 class PredictionPage extends StatefulWidget {
   const PredictionPage({super.key});
 
@@ -60,12 +67,12 @@ class PredictionPage extends StatefulWidget {
 
 class _PredictionPageState extends State<PredictionPage> {
   final Map<String, TextEditingController> _controllers = {
-    for (final field in sections.values.expand((fields) => fields))
-      field.key: TextEditingController(text: field.example),
+    for (final field in allFields) field.key: TextEditingController(text: field.example),
   };
 
   String _message = 'Fill in the order details and tap Predict.';
   bool _isError = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -77,7 +84,7 @@ class _PredictionPageState extends State<PredictionPage> {
 
   Map<String, Object> _collectInputs() {
     final values = <String, Object>{};
-    for (final field in sections.values.expand((fields) => fields)) {
+    for (final field in allFields) {
       final raw = _controllers[field.key]!.text.trim();
       if (raw.isEmpty) {
         throw FormatException('${field.label} is required.');
@@ -106,18 +113,32 @@ class _PredictionPageState extends State<PredictionPage> {
     return values;
   }
 
-  void _predict() {
+  void _show(String message, {bool isError = false}) {
+    if (!mounted) return;
+    setState(() {
+      _message = message;
+      _isError = isError;
+    });
+  }
+
+  Future<void> _predict() async {
+    FocusScope.of(context).unfocus();
     try {
-      _collectInputs();
-      setState(() {
-        _isError = false;
-        _message = 'Inputs look good. Connecting to the API comes next.';
-      });
+      final inputs = _collectInputs();
+      setState(() => _isLoading = true);
+      _show('Getting prediction... the first request can take up to a minute while the server wakes up.');
+      final minutes = await ApiService.predict(inputs, fieldLabels);
+      _show('Estimated delivery time: ${minutes.toStringAsFixed(1)} minutes');
     } on FormatException catch (error) {
-      setState(() {
-        _isError = true;
-        _message = error.message;
-      });
+      _show(error.message, isError: true);
+    } on ApiException catch (error) {
+      _show(error.message, isError: true);
+    } on TimeoutException {
+      _show('The server took too long to respond. Please try again.', isError: true);
+    } catch (_) {
+      _show('Could not reach the server. Check your internet connection and try again.', isError: true);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -140,7 +161,16 @@ class _PredictionPageState extends State<PredictionPage> {
             const SizedBox(height: 8),
             SizedBox(
               height: 50,
-              child: FilledButton(onPressed: _predict, child: const Text('Predict')),
+              child: FilledButton(
+                onPressed: _isLoading ? null : _predict,
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      )
+                    : const Text('Predict'),
+              ),
             ),
             const SizedBox(height: 16),
             Container(
