@@ -3,7 +3,8 @@
 ## Mission and Problem
 
 My mission is to make last-mile delivery reliable and affordable across East Africa so small businesses can grow.
-In Nairobi, customers and businesses rarely know when a motorbike delivery will actually arrive, which wastes time and erodes trust.
+In Nairobi, businesses and their customers often don't know when a motorbike delivery will arrive, which wastes time and hurts trust.
+
 This project predicts the delivery time from pick-up to drop-off using real Sendy orders, so logistics platforms can give customers accurate arrival estimates and plan their riders better.
 
 ## Dataset
